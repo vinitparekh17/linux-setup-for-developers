@@ -27,88 +27,114 @@ if [ -e /etc/os-release ]; then
             exit 1
             ;;
     esac
-
-sleep 2
-echo "Starting installation setup..."
+    cp ~/.bashrc ~/.bashrc_backup
+    sleep 2
+    echo "Starting installation setup..."
 
 # A linux command script for pre configuring laptop for development
 
-sudo $package_manager update -y
-sudo $package_manager upgrade -y
+    sudo $package_manager update -y
+    sudo $package_manager upgrade -y
 
 # Some development essentials
 
-sudo $package_manager install -y git
-sudo $package_manager install -y curl
-sudo $package_manager install -y wget
-sudo $package_manager install -y code
+    sudo $package_manager install -y git
+    sudo $package_manager install -y curl
+    sudo $package_manager install -y wget
+    sudo $package_manager install -y code
 
-# Installing brave browser
+    # Installing brave browser
+    if [ $package_manager == "apt-get" ]; then
+        sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"|sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+        sudo $package_manager update
+        sudo $package_manager install brave-browser
+    elif [ $package_manager == "dnf" ]; then
+        sudo dnf install dnf-plugins-core
+        sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+        sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+        sudo dnf install brave-browser
+    elif [ $package_manager == "pacman" ] then
+        echo "Enter your username of arch linux in which you want to install brave browser:"
+        read username
+        if [ -z "$username" ]; then
+            sleep 5
+            echo "Installing for root user!"
+            sudo git clone https://aur.archlinux.org/yay.git
+            cd yay
+            makepkg -si
+            yay -S brave-bin
+        else
+            sudo git clone https://aur.archlinux.org/yay.git
+            sudo chown -R  $username:users yay
+            cd yay
+            makepkg -si
+            yay -S brave-bin
+        fi
 
-sudo apt install curl
-sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"|sudo tee /etc/apt/sources.list.d/brave-browser-release.list
-sudo apt update
-sudo apt install brave-browser
+    fi
 
-# Customizing the terminal
+    # Customizing the terminal
 
-sudo $package_manager install -y zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+    sudo $package_manager install -y zsh
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
 
-# Docker installation
+    # Docker installation
 
-# Add Docker's official GPG key:
-sudo $package_manager update -y
-sudo $package_manager install ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    # Add Docker's official GPG key:
+    sudo $package_manager update -y
+    sudo $package_manager install ca-certificates curl gnupg
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo $package_manager update
+    # Add the repository to Apt sources:
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo $package_manager update
 
-sudo $package_manager install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo $package_manager install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Golang install
-rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.4.linux-amd64.tar.gz
-wget https://go.dev/dl/go1.21.4.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.21.4.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
+    # Golang install
+    wget https://go.dev/dl/go1.21.4.linux-amd64.tar.gz
+    sudo tar -C /usr/local -xzf ~/go1.21.4.linux-amd64.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
 
-# Installing dotnet
+    # Installing dotnet
 
-wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
-chmod +x dotnet-install.sh
-./dotnet-install.sh --version latest
-./dotnet-install.sh --version latest --runtime aspnetcore
-./dotnet-install.sh --channel 8.0
+    wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+    chmod +x dotnet-install.sh
+    ./dotnet-install.sh --version latest
+    ./dotnet-install.sh --version latest --runtime aspnetcore
+    ./dotnet-install.sh --channel 8.0
 
-    # Path configuration for dotnet
-DOTNET_FILE=dotnet-sdk-8.0.100-linux-x64.tar.gz
-export DOTNET_ROOT=$(pwd)/.dotnet
-mkdir -p "$DOTNET_ROOT" && tar zxf "$DOTNET_FILE" -C "$DOTNET_ROOT"
-export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+        # Path configuration for dotnet
+    DOTNET_FILE=dotnet-sdk-8.0.100-linux-x64.tar.gz
+    export DOTNET_ROOT=$(pwd)/.dotnet
+    mkdir -p "$DOTNET_ROOT" && tar zxf "$DOTNET_FILE" -C "$DOTNET_ROOT"
+    export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
 
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
 
-curl -o ~/.bashrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.bashrc
-curl -o ~/.zshrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.zshrc
+    curl -o ~/.bashrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.bashrc
+    curl -o ~/.zshrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.zshrc
 
-# Installing nodejs lts version
-nvm install --lts
+    # load the terminal with new configurations
+    source ~/.bashrc
+    source ~/.zshrc
 
-# load the terminal with new configurations
-source ~/.bashrc
-source ~/.zshrc
+    # Installing nodejs lts version
+    zsh -c nvm install --lts
+
 
 else
     echo "Unsupported or unknown distribution"
     exit 1
 fi
+
+echo "Installation completed successfully!"
+echo -e "\e[1;33mOrignal bashrc file is backed up in ~/.bashrc_backup in case you want to revert back to it.\e[0m"
