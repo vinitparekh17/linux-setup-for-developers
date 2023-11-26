@@ -40,6 +40,7 @@ sudo $package_manager upgrade -y
 
 sudo $package_manager install -y git
 sudo $package_manager install -y curl
+sudo $package_manager install -y wget
 sudo $package_manager install -y code
 
 # Installing brave browser
