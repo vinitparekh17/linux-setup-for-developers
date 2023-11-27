@@ -54,7 +54,7 @@ if [ -e /etc/os-release ]; then
         sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
         sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
         sudo dnf install brave-browser
-    elif [ $package_manager == "pacman" ] then
+    elif [ $package_manager == "pacman" ]; then
         echo "Enter your username of arch linux in which you want to install brave browser:"
         read username
         if [ -z "$username" ]; then
@@ -71,7 +71,6 @@ if [ -e /etc/os-release ]; then
             makepkg -si
             yay -S brave-bin
         fi
-
     fi
 
     # Customizing the terminal
