@@ -47,11 +47,11 @@ if [ -e /etc/os-release ]; then
     if [ $package_manager == "apt-get" ]; then
         sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"|sudo tee /etc/apt/sources.list.d/brave-browser-release.list
-        sudo $package_manager update
-        sudo $package_manager install brave-browser
+        sudo $package_manager update -y
+        sudo $package_manager install brave-browser -y
     elif [ $package_manager == "dnf" ]; then
-        sudo dnf install dnf-plugins-core
-        sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+        sudo dnf install dnf-plugins-core -y
+        sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo -y
         sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
         sudo dnf install brave-browser -y
     elif [ $package_manager == "pacman" ]; then
@@ -72,14 +72,6 @@ if [ -e /etc/os-release ]; then
             yay -S brave-bin
             fi
     fi
-
-    # Customizing the terminal
-
-    sudo $package_manager install -y zsh
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-
     # Docker installation
 
     # Add Docker's official GPG key:
@@ -118,18 +110,26 @@ if [ -e /etc/os-release ]; then
     export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
 
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+    # Installing nodejs lts version
+    nvm install --lts
 
     curl -o ~/.bashrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.bashrc
     curl -o ~/.zshrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.zshrc
 
+    # Customizing the terminal
+
+    sudo $package_manager install -y zsh
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+
     # load the terminal with new configurations
     source ~/.bashrc
     source ~/.zshrc
-
-    # Installing nodejs lts version
-    zsh -c nvm install --lts
-
-
 else
     echo "Unsupported or unknown distribution"
     exit 1
