@@ -117,15 +117,14 @@ if [ -e /etc/os-release ]; then
     # Installing nodejs lts version
     nvm install --lts
 
-    curl -o ~/.bashrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.bashrc
-    curl -o ~/.zshrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.zshrc
-
     # Customizing the terminal
 
     sudo $package_manager install -y zsh
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+    curl -o ~/.bashrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.bashrc
+    curl -o ~/.zshrc https://raw.githubusercontent.com/vinitparekh17/backup/main/.zshrc
 
     # load the terminal with new configurations
     source ~/.bashrc
