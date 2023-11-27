@@ -53,7 +53,7 @@ if [ -e /etc/os-release ]; then
         sudo dnf install dnf-plugins-core
         sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
         sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-        sudo dnf install brave-browser
+        sudo dnf install brave-browser -y
     elif [ $package_manager == "pacman" ]; then
         echo "Enter your username of arch linux in which you want to install brave browser:"
         read username
@@ -84,7 +84,7 @@ if [ -e /etc/os-release ]; then
 
     # Add Docker's official GPG key:
     sudo $package_manager update -y
-    sudo $package_manager install ca-certificates curl gnupg
+    sudo $package_manager install -y ca-certificates gnupg
     sudo install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
@@ -94,9 +94,9 @@ if [ -e /etc/os-release ]; then
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
       $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo $package_manager update
+    sudo $package_manager update -y
 
-    sudo $package_manager install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo $package_manager install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 
     # Golang install
     wget https://go.dev/dl/go1.21.4.linux-amd64.tar.gz
