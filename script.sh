@@ -64,13 +64,13 @@ if [ -e /etc/os-release ]; then
             cd yay
             makepkg -si
             yay -S brave-bin
-        else
+            else
             sudo git clone https://aur.archlinux.org/yay.git
             sudo chown -R  $username:users yay
             cd yay
             makepkg -si
             yay -S brave-bin
-        fi
+            fi
     fi
 
     # Customizing the terminal
