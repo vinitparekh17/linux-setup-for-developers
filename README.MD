@@ -75,7 +75,7 @@ AUR_HELPER="paru"  # Default: yay
 ```
 
 ## Contributing
-Found a bug or want to add a feature? Fork the repo, make changes, and submit a pull request! See the script’s inlin comments for guidance.
+Found a bug or want to add a feature? Fork the repo, make changes, and submit a pull request! See the script’s inline comments for guidance.
 
 ## Troubleshooting
 - Log file: Check ``~/devsetup_*.log` for errors.
