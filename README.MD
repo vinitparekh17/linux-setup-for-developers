@@ -9,7 +9,6 @@ A robust, modular Bash script to automate setting up a Linux development environ
   - Fedora/CentOS/RHEL (`dnf`)
   - Arch/Manjaro (`pacman`)
   - OpenSUSE (`zypper`)
-  - Gentoo (`emerge`)
 - **Modular Design**: Organized with reusable functions (e.g., `install_package`, `rollback`) for easy maintenance.
 - **Error Handling**: Exits on failure (`set -e`), logs to `~/devsetup_*.log`, and supports rollback of failed installs.
 - **Interactive UI**: Uses `dialog` for a menu-driven experience; falls back to defaults in non-TTY environments (e.g., CI/CD, SSH).
