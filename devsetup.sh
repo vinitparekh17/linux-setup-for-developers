@@ -6,13 +6,13 @@ PACKAGE_MANAGER=""
 DRY_RUN=false
 VERBOSE=false
 LOG_FILE="$HOME/devsetup_$(date +%Y%m%d_%H%M%S).log"
-AUR_HELPER="yay"  # Default, can be overridden by config
+AUR_HELPER="yay"
 CONFIG_DIR="$HOME/.config/devsetup"
 CONFIG_FILE="$CONFIG_DIR/config.sh"
 INSTALLED_PACKAGES=()
 export DIALOGRC="/dev/null"
 
-[ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"  # Load user config (e.g., AUR_HELPER)
+[ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
 
 declare -A PKG_MAP=(
   ["git"]="git" ["curl"]="curl" ["wget"]="wget" ["htop"]="htop" ["neofetch"]="neofetch"
@@ -27,13 +27,13 @@ log() {
     level="$1"
     shift
   fi
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] - $*" | tee -a "$LOG_FILE"
-  [ "$level" = "ERROR" ] && echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] - $*" >&2
+  (echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] - $*" | tee -a "$LOG_FILE" >/dev/null 2>&1) || true
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] - $*"
 }
 
 debug() { [ "$VERBOSE" = true ] && log "DEBUG" "$@"; }
 
-command_exists() { command -v "$1" >/dev/null 2>&1; }
+command_exists() { command -v "$1" >/dev/null 2>&1 || return 1; }
 
 package_installed() {
   case "$PACKAGE_MANAGER" in
@@ -47,17 +47,26 @@ package_installed() {
 }
 
 check_root() {
-  if [[ "$(id -u)" -eq 0 ]]; then
-    log "WARNING" "Running as root is not recommended."
-    ask_confirmation "Continue anyway?" "N" || exit 1
-  fi
+    if [ -f /.dockerenv ]; then
+        return 0  # Skip the check in Docker
+    fi
+
+    if [ "$EUID" -eq 0 ]; then
+        echo "[WARNING] Running as root is not recommended."
+        read -rp "Continue? (y/N): " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "[INFO] Exiting due to user choice."
+            exit 1
+        fi
+    fi
 }
 
 ask_confirmation() {
   local prompt="$1"
   local default="${2:-N}"
+  local confirmation=""
   read -t 10 -p "$prompt (y/N, timeout 10s): " confirmation || {
-    log "Timeout reached, defaulting to No."
+    log "Timeout reached or no input, defaulting to No."
     return 1
   }
   case "$confirmation" in
@@ -141,22 +150,90 @@ ensure_aur_helper() {
 
 # --- Distribution Detection ---
 detect_distribution() {
+  
+  if [ "$DRY_RUN" = true ]; then
+    log "[Dry Run] Detecting Linux distribution"
+  fi
+  
   if [ -e /etc/os-release ]; then
-    . /etc/os-release
-    debug "Loaded /etc/os-release: ID=$ID, PRETTY_NAME=$PRETTY_NAME"
+    . /etc/os-release  # Ensure we source the file in the current shell
+    log "Sourced /etc/os-release: ID=$ID, VERSION_ID=$VERSION_ID, PRETTY_NAME='$PRETTY_NAME'"
+    
+    # Additional debug info
+    if [ "$VERBOSE" = true ]; then
+      debug "Full os-release contents:"
+      debug "$(cat /etc/os-release)"
+    fi
+
+    local original_package_manager="$PACKAGE_MANAGER"
+    local detected_id="$ID"
+    
+    # For handling ID_LIKE if ID is not recognized
+    if [ -n "$ID_LIKE" ]; then
+      log "Distribution has ID_LIKE=$ID_LIKE"
+    fi
+    
     case "$ID" in
-      ubuntu|debian|linuxmint|pop) PACKAGE_MANAGER="apt-get" ;;
-      fedora|centos|rhel|rocky|alma) PACKAGE_MANAGER="dnf" ;;
-      arch|manjaro|endeavouros) PACKAGE_MANAGER="pacman" ;;
-      opensuse*) PACKAGE_MANAGER="zypper" ;;
-      gentoo) PACKAGE_MANAGER="emerge" ;;
-      *) log "ERROR" "Unsupported distribution: $ID"; exit 1 ;;
+      ubuntu|debian|linuxmint|pop) 
+        PACKAGE_MANAGER="apt-get"
+        log "Detected Debian-based distribution: $ID" ;;
+      fedora|centos|rhel|rocky|alma) 
+        PACKAGE_MANAGER="dnf"
+        log "Detected Red Hat-based distribution: $ID" ;;
+      arch|endeavouros) 
+        PACKAGE_MANAGER="pacman"
+        log "Detected Arch-based distribution: $ID" ;;
+      manjaro) 
+        PACKAGE_MANAGER="pacman"
+        log "Detected Manjaro Linux (Arch-based): $ID" ;;
+      opensuse*) 
+        PACKAGE_MANAGER="zypper"
+        log "Detected openSUSE distribution: $ID" ;;
+      *)
+        if [ -n "$ID_LIKE" ]; then
+          log "Unrecognized ID=$ID, trying to match based on ID_LIKE=$ID_LIKE"
+          # Try to determine package manager from ID_LIKE
+          if [[ "$ID_LIKE" == *"arch"* ]]; then
+            PACKAGE_MANAGER="pacman"
+            log "Matched Arch-like distribution from ID_LIKE"
+          elif [[ "$ID_LIKE" == *"debian"* ]]; then
+            PACKAGE_MANAGER="apt-get"
+            log "Matched Debian-like distribution from ID_LIKE"
+          elif [[ "$ID_LIKE" == *"fedora"* || "$ID_LIKE" == *"rhel"* ]]; then
+            PACKAGE_MANAGER="dnf"
+            log "Matched Red Hat-like distribution from ID_LIKE"
+          elif [[ "$ID_LIKE" == *"suse"* ]]; then
+            PACKAGE_MANAGER="zypper"
+            log "Matched SUSE-like distribution from ID_LIKE"
+          else
+            log "ERROR" "Unsupported distribution: $ID (ID_LIKE=$ID_LIKE)"
+            exit 1
+          fi
+        else
+          log "ERROR" "Unsupported distribution: $ID"
+          exit 1
+        fi
+        ;;
     esac
-    log "Detected $PRETTY_NAME with $PACKAGE_MANAGER"
+
+    if [ "$DRY_RUN" = true ]; then
+      log "[Dry Run] Would use $PACKAGE_MANAGER for package management on $PRETTY_NAME"
+    fi
+
+    # Check if PACKAGE_MANAGER is actually set
+    if [[ -z "$PACKAGE_MANAGER" ]]; then
+      log "ERROR" "PACKAGE_MANAGER is empty after detection. Exiting."
+      exit 1
+    fi
   else
-    log "ERROR" "/etc/os-release not found."
+    if [ "$DRY_RUN" = true ]; then
+      log "[Dry Run] Would fail: /etc/os-release not found"
+    fi
+    log "ERROR" "/etc/os-release not found. Cannot determine distribution."
     exit 1
   fi
+  
+  log "Exiting detect_distribution"
 }
 
 # --- Rollback ---
@@ -213,10 +290,21 @@ install_code_editors() {
 
 select_categories() {
   if ! command_exists dialog; then
-    log "ERROR" "Dialog is required but missing. Falling back to default installation."
-    install_defaults
-    exit 1
+    if [ "$DRY_RUN" = true ]; then
+      log "[Dry Run] Would install dialog and show menu (simulating essentials selection: git, curl, vscode)"
+      log "[Dry Run] Would install: git"
+      log "[Dry Run] Would install: curl"
+      log "[Dry Run] Would install: vscode_${PACKAGE_MANAGER}"
+      SELECTED_ESSENTIALS=("git" "curl")
+      SELECTED_EDITORS=("vscode_${PACKAGE_MANAGER}")
+      return 0
+    else
+      log "ERROR" "Dialog is required but missing. Falling back to default installation."
+      install_defaults
+      exit 1
+    fi
   fi
+
   dialog --menu "Select installation categories:" 15 50 5 \
     1 "Essential Tools" \
     2 "Code Editors" \
@@ -254,9 +342,12 @@ while getopts "ndvh" opt; do
       echo "  -h  Help: Show this message"
       exit 0
       ;;
+    ?) log "ERROR" "Invalid option: -$OPTARG"; exit 1 ;;
   esac
 done
+shift $((OPTIND - 1))
 
+log "Finished parsing options, proceeding with setup."
 check_root
 detect_distribution
 if ! command_exists dialog; then

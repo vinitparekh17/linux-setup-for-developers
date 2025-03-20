@@ -1,0 +1,41 @@
+version: '3.9'
+services:
+  ubuntu:
+    image: ubuntu:latest
+    container_name: devsetup_ubuntu
+    volumes:
+      - ./devsetup.sh:/devsetup.sh
+      - ./logs:/logs
+    command: ["/bin/bash", "-c", "apt-get update && apt-get install -y sudo && chmod +x /devsetup.sh && /devsetup.sh -vn | tee /logs/ubuntu.log && grep 'Installation completed successfully!' /logs/ubuntu.log"]
+    
+  debian:
+    image: debian:latest
+    container_name: devsetup_debian
+    volumes:
+      - ./devsetup.sh:/devsetup.sh
+      - ./logs:/logs
+    command: ["/bin/bash", "-c", "apt-get update && apt-get install -y sudo && chmod +x /devsetup.sh && /devsetup.sh -vn | tee /logs/debian.log && grep 'Installation completed successfully!' /logs/debian.log"]
+    
+  fedora:
+    image: fedora:latest
+    container_name: devsetup_fedora
+    volumes:
+      - ./devsetup.sh:/devsetup.sh
+      - ./logs:/logs
+    command: ["/bin/bash", "-c", "dnf install -y sudo && chmod +x /devsetup.sh && /devsetup.sh -vn | tee /logs/fedora.log && grep 'Installation completed successfully!' /logs/fedora.log"]
+    
+  arch:
+    image: archlinux:latest
+    container_name: devsetup_arch
+    volumes:
+      - ./devsetup.sh:/devsetup.sh
+      - ./logs:/logs
+    command: ["/bin/bash", "-c", "pacman -Sy --noconfirm sudo && chmod +x /devsetup.sh && /devsetup.sh -vn | tee /logs/arch.log && grep 'Installation completed successfully!' /logs/arch.log"]
+    
+  opensuse:
+    image: opensuse/leap:latest
+    container_name: devsetup_opensuse
+    volumes:
+      - ./devsetup.sh:/devsetup.sh
+      - ./logs:/logs
+    command: ["/bin/bash", "-c", "zypper install -y sudo && chmod +x /devsetup.sh && /devsetup.sh -vn | tee /logs/opensuse.log && grep 'Installation completed successfully!' /logs/opensuse.log"]

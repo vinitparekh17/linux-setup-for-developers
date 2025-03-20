@@ -1,0 +1,42 @@
+name: DevSetup CI Test
+on:  
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  test-devsetup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Create logs directory
+        run: mkdir -p logs
+        
+      - name: Validate docker-compose file
+        run: docker-compose config
+        
+      - name: Start Containers and Run Tests
+        run: |
+          docker-compose up -d
+          echo "Waiting for all containers to complete..."
+          docker-compose ps -q | xargs -I {} docker wait {}
+          # Check if any container exited with non-zero status
+          FAILED=$(docker-compose ps -q | xargs -I {} docker inspect -f '{{.State.ExitCode}}' {} | grep -v 0 | wc -l)
+          if [ $FAILED -gt 0 ]; then
+            echo "::error::$FAILED containers failed tests"
+            exit 1
+          fi
+          
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: installation-logs
+          path: logs/
+          
+      - name: Cleanup Docker Environment
+        if: always()
+        run: docker-compose down -v --remove-orphans
