@@ -78,7 +78,7 @@ AUR_HELPER="paru"  # Default: yay
 Found a bug or want to add a feature? Fork the repo, make changes, and submit a pull request! See the script’s inline comments for guidance.
 
 ## Troubleshooting
-- Log file: Check ``~/devsetup_*.log` for errors.
+- Log file: Check `~/devsetup_*.log` for errors.
 - Permission denied: Run with `sudo` if needed, but avoid running as root directly.
 - Dialog fails: Ensure a TTY is available or use defaults in non-TTY mode.
 
